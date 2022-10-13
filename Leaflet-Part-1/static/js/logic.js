@@ -3,30 +3,31 @@ const queryUrl = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_
 
 // Perform a GET request to the query URL/
 d3.json(queryUrl).then(function (data) {
-  // Once we get a response, send the data.features object to the createFeatures function.
-  console.log(data); 
+  // send the data.features object to the createFeatures function.
   createFeatures(data.features);
 });
 
 function createFeatures(earthquakeData) {
 
-  // Define a function that we want to run once for each feature in the features array.
-  // Give each feature a popup that describes the place and time of the earthquake.
+  // function that runs on each feature in the file
   function onEachFeature(feature, layer) {
+    // creates the popup to hold earthquake information
     layer.bindPopup(`<h3>Location: ${feature.properties.place}</h3>
     <hr>
     <p>Magnitude: ${feature.properties.mag}
     <br>Date: ${new Date(feature.properties.time)}
     <br>Depth: ${feature.geometry.coordinates[2]}</p>`);
   }
-
-  // Create a GeoJSON layer that contains the features array on the earthquakeData object.
-  // Run the onEachFeature function once for each piece of data in the array.
+  
+  // create the earthquake geojson layer
   let earthquakes = L.geoJSON(earthquakeData, {
     pointToLayer: function (feature, latlng) {
+      // create the circle markers for the map features
       return L.circleMarker(latlng, 
         {
+          // call the calcSize function to set the radius of feature markers
           radius: calcSize(feature.properties.mag),
+          // call the chooseColor fuction to set the color of the feature markers
           fillColor: chooseColor(feature.geometry.coordinates[2]),
           color: "white",
           weight: 1,
@@ -37,7 +38,7 @@ function createFeatures(earthquakeData) {
     },
     onEachFeature: onEachFeature
   });
-
+  
   // Send our earthquakes layer to the createMap function/
   createMap(earthquakes);
 }
@@ -48,13 +49,13 @@ function createMap(earthquakes) {
   let street = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   })
-
+  
   // Create a baseMaps object.
   let baseMaps = {
     "Street Map": street
   };
 
-  // Create our map, giving it the streetmap and earthquakes layers to display on load.
+  // Create the map, with the streetmap and earthquakes layers to display on load.
   let myMap = L.map("map", {
     center: [
       37.09, -95.71
@@ -83,12 +84,12 @@ function createMap(earthquakes) {
   };
 
 legend.addTo(myMap);
-
     
 }
 
 //Function to chose the color for the earthquake marker
 function chooseColor(depth) {
+  
     if (depth < 0 ) return "#133d0d";
     else if (depth <= 10) return "#48a13b";
     else if (depth <= 20) return "#b8db7f";
@@ -101,6 +102,8 @@ function chooseColor(depth) {
 
 //Function to calculate the size for the earthquake marker
 function calcSize(magnitude) {
-    let size = Math.sqrt(magnitude) * 10;
-    return size;
-  }
+  let size = Math.sqrt(magnitude) * 10;
+  //set null values to 0
+  size = size || 0;
+  return size;
+}
