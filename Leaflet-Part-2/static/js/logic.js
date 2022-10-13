@@ -2,28 +2,19 @@
 const queryUrl = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson"
 // Plate GeoJson data
 const link = "https://raw.githubusercontent.com/fraxen/tectonicplates/master/GeoJSON/PB2002_plates.json"
-// depth = feature.geometry.depth
-// Magnitude = feature.properties.mag
-// lattitude = feature.geometry.latitude
-// longitude = feature.geometry.longitude
-// latlng=[feature.geometry.latitude, feature.geometry.longitude]
 
-// Perform a GET request to the query URL/
-
-// Perform a GET request to the query URL/
+// get the earthquake geojson
 d3.json(queryUrl).then(function (data) {
-  // Getting our GeoJSON data
+  // Getting the tectonic plate GeoJSON data
   d3.json(link).then(function(platedata) {
-  // Once we get a response, send the data.features object to the createFeatures function.
-  console.log(data); 
+  // call the function to create the map layers and map
   createFeatures(data.features, platedata.features);
   });
 });
 
 function createFeatures(earthquakeData, platedata) {
 
-  // Define a function that we want to run once for each feature in the features array.
-  // Give each feature a popup that describes the place and time of the earthquake.
+  // create the popup for each feature
   function onEachFeature(feature, layer) {
     layer.bindPopup(`<h3>Location: ${feature.properties.place}</h3>
     <hr>
@@ -32,13 +23,14 @@ function createFeatures(earthquakeData, platedata) {
     <br>Depth: ${feature.geometry.coordinates[2]}</p>`);
   }
 
-  // Create a GeoJSON layer that contains the features array on the earthquakeData object.
-  // Run the onEachFeature function once for each piece of data in the array.
+  // create the earthquake later with circle markers for features
   let earthquakes = L.geoJSON(earthquakeData, {
     pointToLayer: function (feature, latlng) {
       return L.circleMarker(latlng, 
         {
+          // call function to set size of the feature marker
           radius: calcSize(feature.properties.mag),
+          // call function to set color of the feature marker
           fillColor: chooseColor(feature.geometry.coordinates[2]),
           color: "white",
           weight: 1,
@@ -50,30 +42,31 @@ function createFeatures(earthquakeData, platedata) {
     onEachFeature: onEachFeature
   });
 
-    // Our style object
+    // techtonic plate style object
     let plateStyle = {
       color: "red",
       fillOpacity:0,
       weight: 1.5
     };
   
-    // Creating a GeoJSON layer with the retrieved data
+    // create the tectonic plate layer
     let plates = L.geoJson(platedata, {
       // Passing in our style object
       style: plateStyle
     });
 
-  // Send our earthquakes layer to the createMap function/
+  // Send earthquakes and tectonic plates layers to the createMap function
   createMap(earthquakes, plates);
 }
 
 function createMap(earthquakes, plates) {
 
-  // Create the base layers.
+  // Create the street map base layer
   let street = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   })
 
+  // create the topographic map base layer
   let topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
     attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
   });
@@ -98,7 +91,7 @@ function createMap(earthquakes, plates) {
       37.09, -95.71
     ],
     zoom: 4,
-    layers: [street, earthquakes, plates]
+    layers: [street, plates, earthquakes]
   });
 
   // Create a layer control.
@@ -109,7 +102,6 @@ function createMap(earthquakes, plates) {
   }).addTo(myMap);
 
   // add legend
-
   let legend = L.control({ position: "bottomright" });
 
   legend.onAdd = function(map) {
@@ -146,6 +138,8 @@ function chooseColor(depth) {
 
 //Function to calculate the size for the earthquake marker
 function calcSize(magnitude) {
-    let size = Math.sqrt(magnitude) * 10;
-    return size;
-  }
+  let size = Math.sqrt(magnitude) * 10;
+  //set null values to 0
+  size = size || 0;
+  return size;
+}
