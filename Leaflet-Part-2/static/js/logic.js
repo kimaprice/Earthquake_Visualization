@@ -1,14 +1,26 @@
 //Earthquake GeoJSON data
 const queryUrl = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson"
+// Plate GeoJson data
+const link = "https://raw.githubusercontent.com/fraxen/tectonicplates/master/GeoJSON/PB2002_plates.json"
+// depth = feature.geometry.depth
+// Magnitude = feature.properties.mag
+// lattitude = feature.geometry.latitude
+// longitude = feature.geometry.longitude
+// latlng=[feature.geometry.latitude, feature.geometry.longitude]
+
+// Perform a GET request to the query URL/
 
 // Perform a GET request to the query URL/
 d3.json(queryUrl).then(function (data) {
+  // Getting our GeoJSON data
+  d3.json(link).then(function(platedata) {
   // Once we get a response, send the data.features object to the createFeatures function.
   console.log(data); 
-  createFeatures(data.features);
+  createFeatures(data.features, platedata.features);
+  });
 });
 
-function createFeatures(earthquakeData) {
+function createFeatures(earthquakeData, platedata) {
 
   // Define a function that we want to run once for each feature in the features array.
   // Give each feature a popup that describes the place and time of the earthquake.
@@ -38,20 +50,46 @@ function createFeatures(earthquakeData) {
     onEachFeature: onEachFeature
   });
 
+    // Our style object
+    let plateStyle = {
+      color: "red",
+      fillOpacity:0,
+      weight: 1.5
+    };
+  
+    // Creating a GeoJSON layer with the retrieved data
+    let plates = L.geoJson(platedata, {
+      // Passing in our style object
+      style: plateStyle
+    });
+
   // Send our earthquakes layer to the createMap function/
-  createMap(earthquakes);
+  createMap(earthquakes, plates);
 }
 
-function createMap(earthquakes) {
+function createMap(earthquakes, plates) {
 
   // Create the base layers.
   let street = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   })
 
+  let topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+    attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+  });
+
+
+
   // Create a baseMaps object.
   let baseMaps = {
-    "Street Map": street
+    "Street Map": street,
+    "Topographic Map": topo
+  };
+
+  // Create an overlay object to hold our overlay.
+  let overlayMaps = {
+    Earthquakes: earthquakes,
+    "Tectonic Plates": plates
   };
 
   // Create our map, giving it the streetmap and earthquakes layers to display on load.
@@ -60,15 +98,22 @@ function createMap(earthquakes) {
       37.09, -95.71
     ],
     zoom: 4,
-    layers: [street, earthquakes]
+    layers: [street, earthquakes, plates]
   });
 
+  // Create a layer control.
+  // Pass it our baseMaps and overlayMaps.
+  // Add the layer control to the map.
+  L.control.layers(baseMaps, overlayMaps, {
+    collapsed: false
+  }).addTo(myMap);
+
   // add legend
+
   let legend = L.control({ position: "bottomright" });
 
   legend.onAdd = function(map) {
     var div = L.DomUtil.create("div", "legend");
-    // define what is in the legend
     div.innerHTML += "<h4>Depth of Earthquake</h4>";
     div.innerHTML += '<i style="background: #133d0d"></i><span>Less than 0</span><br>';
     div.innerHTML += '<i style="background: #48a13b"></i><span>0 - 10</span><br>';
